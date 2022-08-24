@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "veyo-platform-normalizer": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Users\\agrey\\source\\repos\\veyo-platform\\Infrastructure"
+    }
+  }
+}
