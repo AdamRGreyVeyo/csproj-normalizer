@@ -122,7 +122,7 @@ public class Program
 
                     Console.WriteLine($"sorting an itemgroup");
                     var compileItmesCopy = compileItems.OrderBy(ci => ci.Attribute("Include")?.Value).ToList();
-                    var noncompileItems = group.Descendants().Where(xe => xe.Name.LocalName != "Compile").ToList();
+                    var noncompileItems = group.Descendants().Where(xe => xe.Name.LocalName != "Compile" && xe.Parent == group).ToList();
                     group.RemoveAll();
                     group.Add(noncompileItems);
                     group.Add(compileItmesCopy);
