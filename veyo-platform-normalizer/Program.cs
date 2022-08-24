@@ -74,13 +74,16 @@ public class Program
                 && xe.Attributes().Count() == 0
                 && xe.Descendants().Where(igd =>
                     igd.Name.LocalName == "Compile"
-                    && igd.Attribute("Compile")?.Value?.EndsWith(".cs") == true
-                ).Any()
+                    && igd.Attribute("Include")?.Value?.EndsWith(".cs") == true
+                    ).Any()
             ).FirstOrDefault();
+            firstGroup = null;
             if (firstGroup == null)
             {
                 firstGroup = new XElement("ItemGroup");
                 doc.Add(firstGroup);
+                //because it _does_ have one; that's why system.xml wants to badly to set one - you set it up with blank, so it's _overriding_ with blank
+                firstGroup.Name = firstGroup.Parent.Name.Namespace + firstGroup.Name.LocalName;
             }
             foreach (var existingFile in Directory.GetFiles(projDir, "*.cs", SearchOption.AllDirectories))
             {
