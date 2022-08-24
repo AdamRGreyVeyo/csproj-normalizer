@@ -20,6 +20,7 @@ public class Program
         foreach (var foundProjsFile in foundProjs)
         {
             var partialPath = Path.GetRelativePath(workingDir, foundProjsFile);
+            var projDir = Path.GetDirectoryName(foundProjsFile);
             var problemFound = false;
             XElement doc;
             try
@@ -66,7 +67,44 @@ public class Program
                 }
             }
 
-            //TODO: add references to missing files
+
+            //an itemgroup with no attributes and it has a Compile which has attribute Include=something.cs
+            var firstGroup = doc.Descendants().Where(xe =>
+                xe.Name.LocalName == "ItemGroup"
+                && xe.Attributes().Count() == 0
+                && xe.Descendants().Where(igd =>
+                    igd.Name.LocalName == "Compile"
+                    && igd.Attribute("Compile")?.Value?.EndsWith(".cs") == true
+                ).Any()
+            ).FirstOrDefault();
+            if (firstGroup == null)
+            {
+                firstGroup = new XElement("ItemGroup");
+                doc.Add(firstGroup);
+            }
+            foreach (var existingFile in Directory.GetFiles(projDir, "*.cs", SearchOption.AllDirectories))
+            {
+                var relativeFilePath = Path.GetRelativePath(projDir, existingFile);
+                if (findUpward(existingFile, "obj", projDir))
+                {
+                    continue;
+                }
+                var foundVersion = referencedFiles.FirstOrDefault(xe =>
+                    Path.GetFullPath(xe.Attribute("Include")?.Value ?? "/dev/null", projDir)
+                    == existingFile);
+                if (foundVersion == null)
+                {
+                    if (!problemFound)
+                    {
+                        Console.WriteLine($"!! {partialPath} !!");
+                        problemFound = true;
+                    }
+                    Console.WriteLine($"does not reference file in directory: {relativeFilePath}");
+                    var toAdd = new XElement("Compile");
+                    toAdd.SetAttributeValue("Include", relativeFilePath);
+                    firstGroup.Add(toAdd);
+                }
+            }
 
             //TODO: merge to one big itemgroup
 
@@ -102,4 +140,19 @@ public class Program
         }
     }
 
+    private static bool findUpward(string fullpath, string target, string stopAt = "C:\\")
+    {
+        var parent = Directory.GetParent(fullpath);
+        if (parent == null || parent.FullName == stopAt)
+        {
+            return false;
+        }
+        else if (parent.Name == target) {
+            return true;
+        }
+        else
+        {
+            return findUpward(parent.FullName, target, stopAt);
+        }
+    }
 }
