@@ -67,8 +67,7 @@ public class Program
                 }
             }
 
-
-            //an itemgroup with no attributes and it has a Compile which has attribute Include=something.cs
+            //referencing existing shadow files
             var firstGroup = doc.Descendants().Where(xe =>
                 xe.Name.LocalName == "ItemGroup"
                 && xe.Attributes().Count() == 0
@@ -109,7 +108,32 @@ public class Program
                 }
             }
 
-            //TODO: merge to one big itemgroup
+            //merge to one big itemgroup
+            var plainItemgroups = doc.Descendants().Where(xe =>
+                xe.Name.LocalName == "ItemGroup"
+                && xe.Attributes().Count() == 0
+                && xe.Descendants().Where(igd =>
+                    igd.Name.LocalName == "Compile"
+                    && igd.Attribute("Include")?.Value?.EndsWith(".cs") == true
+                    ).Any()
+            );
+            if(plainItemgroups.Count() > 1)
+            {
+                if (!problemFound)
+                {
+                    Console.WriteLine($"!! {partialPath} !!");
+                    problemFound = true;
+                }
+                Console.WriteLine($"many itemgroups found, merging to one");
+                
+                firstGroup = plainItemgroups.First();
+                foreach (var otherGroup in plainItemgroups.Where(xe => xe != firstGroup).ToList())
+                {
+                    var immediateChildren = otherGroup.Descendants().Where(xe => xe.Parent == otherGroup);
+                    otherGroup.Remove();
+                    firstGroup.Add(immediateChildren);
+                }
+            }
 
             //still searchin throuh multiple itemgroups, in case they have attributes
             foreach (var group in doc.Descendants().Where(xe => xe.Name.LocalName == "ItemGroup"))
